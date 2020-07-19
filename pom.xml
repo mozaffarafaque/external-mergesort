@@ -7,7 +7,7 @@
 
     <groupId>com.mozafaq</groupId>
     <packaging>jar</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <artifactId>external-mergesort</artifactId>
 
     <name>External merge sort algorithm implementation</name>
@@ -19,12 +19,9 @@
         </license>
     </licenses>
 
-    <scm>
-        <url>https://github.com/mozaffarafaque/datapipes</url>
-    </scm>
-
     <properties>
         <testing.testng.version>6.9.10</testing.testng.version>
+        <aws.sdk.version>1.11.816</aws.sdk.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -43,7 +40,7 @@
                     <release>11</release>
                 </configuration>
             </plugin>
-            <plugin>
+            <!--plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>3.2.0</version>
@@ -69,6 +66,20 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin-->
         </plugins>
     </build>
 
@@ -76,12 +87,12 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.11.816</version>
+            <version>${aws.sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-core</artifactId>
-            <version>1.11.816</version>
+            <version>${aws.sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -105,4 +116,17 @@
             <layout>default</layout>
         </snapshotRepository>
     </distributionManagement>
+
+    <scm>
+        <url>https://github.com/mozaffarafaque/external-mergesort</url>
+    </scm>
+
+    <url>https://github.com/mozaffarafaque/external-mergesort</url>
+    <developers>
+        <developer>
+            <id>mozafaq</id>
+            <name>Mozaffar Afaque</name>
+            <email>mozaffar@mozafaq.com</email>
+        </developer>
+    </developers>
 </project>

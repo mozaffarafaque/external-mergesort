@@ -7,7 +7,7 @@
 
     <groupId>com.mozafaq</groupId>
     <packaging>jar</packaging>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.4-SNAPSHOT</version>
     <artifactId>external-mergesort</artifactId>
 
     <name>External merge sort algorithm implementation</name>

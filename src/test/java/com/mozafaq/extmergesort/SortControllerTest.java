@@ -45,8 +45,11 @@ public class SortControllerTest {
         try {
             getTestConfiguration(destinationFileName,
                     inputFileName,
+                    IOLocationType.FILE_SYSTEM,
                     null,
-                    new TestSortAware(), 100, 0);
+                    new TestSortHandleProvider(),
+                    100,
+                    0);
         } finally {
             Files.delete(Path.of(TEMP_LOCATION, inputFileName));
         }
@@ -57,8 +60,11 @@ public class SortControllerTest {
         String destinationFileName = UUID.randomUUID().toString();
         getTestConfiguration(destinationFileName,
                 null,
-                IOType.FILE_SYSTEM,
-                new TestSortAware(), 100, 0);
+                IOLocationType.FILE_SYSTEM,
+                IOLocationType.FILE_SYSTEM,
+                new TestSortHandleProvider(),
+                100,
+                0);
     }
 
     @Test(expectedExceptions = NullPointerException.class)
@@ -68,8 +74,11 @@ public class SortControllerTest {
         try {
             getTestConfiguration(destinationFileName,
                     fileName,
-                    IOType.FILE_SYSTEM,
-                    null, 100, 0);
+                    IOLocationType.FILE_SYSTEM,
+                    IOLocationType.FILE_SYSTEM,
+                    null,
+                    100,
+                    0);
         } finally {
             Files.delete(Path.of(TEMP_LOCATION, fileName));
         }
@@ -82,14 +91,17 @@ public class SortControllerTest {
         try {
             getTestConfiguration(destinationFileName,
                     fileName,
-                    IOType.RECORD_STREAM,
-                    new TestSortAware(), 100, 0);
+                    IOLocationType.FILE_SYSTEM,
+                    IOLocationType.RECORD_STREAM,
+                    new TestSortHandleProvider(),
+                    100,
+                    0);
         } finally {
             Files.delete(Path.of(TEMP_LOCATION, fileName));
         }
     }
 
-    static class ResultRecordStreamImpl implements ResultRecordStream<Integer> {
+    static class StreamResultOutputHandlerImpl implements StreamResultOutputHandler<Integer> {
         private List<Integer> resultCollection = new ArrayList<>();
         private int beginCallCount = 0;
         private int completeCallCount = 0;
@@ -125,20 +137,23 @@ public class SortControllerTest {
         String destinationFileName = UUID.randomUUID().toString();
         String inputFileName = writeFile(1, 953);
 
-        final  ResultRecordStreamImpl resultRecordStream = new ResultRecordStreamImpl();
-        SortAware<Integer> sortAware = new TestSortAware() {
+        final StreamResultOutputHandlerImpl resultRecordStream = new StreamResultOutputHandlerImpl();
+        SortHandleProvider<Integer> sortHandleProvider = new TestSortHandleProvider() {
           @Override
-          public ResultRecordStream<Integer> resultRecordStream() {
+          public StreamResultOutputHandler<Integer> streamResultOutputHandler() {
               return resultRecordStream;
           }
         };
         Configuration configuration = getTestConfiguration(destinationFileName,
                 inputFileName,
-                IOType.RECORD_STREAM, sortAware, 100, 0);
+                IOLocationType.FILE_SYSTEM,
+                IOLocationType.RECORD_STREAM,
+                sortHandleProvider,
+                100,
+                0);
 
-        ExecutionSummary executionSummary =
-                new SortController<Integer>(configuration.getBaseConfig().getSortAware())
-                        .sort(configuration);
+        ExecutionSummary executionSummary = ExternalMergeSort.sort(
+                configuration.getBaseConfig().getSortHandleProvider(), configuration);
 
         assertTrue(executionSummary.getOutputFiles().isEmpty());
 
@@ -155,55 +170,76 @@ public class SortControllerTest {
     @DataProvider(name = "MergeSortTestCasesMaster")
     public Object[][] testGeneratedCases() throws IOException {
         List<Integer> recordsToBeSorted = Arrays.asList(
-                10, 1000, 333, 1001, 99, 1001, 999, 553
+                1000, 1001, 99, 1001, 999, 553
         );
         List<Integer> maxRecordsInMemoryList = Arrays.asList(
-                10, 1, 10000, 500
+                10, 500, 1000
         );
         List<Integer> recordsPerOutputFileList = Arrays.asList(
                 0, 100, 1000, 500
         );
-        int testCaseCount = recordsToBeSorted.size() * maxRecordsInMemoryList.size() * recordsPerOutputFileList.size();
-        Object[][] testCases = new Object[testCaseCount][3];
+        int testCaseCount = recordsToBeSorted.size() * maxRecordsInMemoryList.size() * recordsPerOutputFileList.size() + 4;
+        Object[][] testCases = new Object[testCaseCount][4];
 
         int counter = 0;
         for (int records: recordsToBeSorted) {
             for (int maxRecordsInMemory : maxRecordsInMemoryList) {
                 for (int recordsPerOutputFile : recordsPerOutputFileList) {
-                    testCases[counter++] = new Object[] {records, maxRecordsInMemory, recordsPerOutputFile};
+                    testCases[counter++] = new Object[] {records, maxRecordsInMemory, recordsPerOutputFile, false};
                 }
             }
         }
+        testCases[counter++] = new Object[] {1000, 100, 100, true};
+        testCases[counter++] = new Object[] {100, 99, 100, true};
+        testCases[counter++] = new Object[] {10010, 1000, 100, true};
+        testCases[counter++] = new Object[] {500, 499, 100, true};
+
         return testCases;
     }
 
     @Test(dataProvider = "MergeSortTestCasesMaster")
     public void testMergeSort(int records,
                               int maxRecordsInMemory,
-                              int recordsPerOutputFile )
+                              int recordsPerOutputFile,
+                              final boolean testWithStreamInputAndOutput)
             throws IOException {
 
-        System.out.println(
-                String.format(
-                        "Test running for records: %d, maxRecordsInMemory: %d, recordsPerOutputFile: %d ",
-                        records, maxRecordsInMemory, recordsPerOutputFile)
-        );
         String destinationFileName = UUID.randomUUID().toString();
         String inputFileName = writeFile(1, records);
-        TestSortAware testSortAware = new TestSortAware();
+        final StreamResultOutputHandlerImpl resultRecordStream = new StreamResultOutputHandlerImpl();
+        TestSortHandleProvider testSortAware = new TestSortHandleProvider() {
+            @Override
+            public StreamResultOutputHandler<Integer> streamResultOutputHandler() {
+                return testWithStreamInputAndOutput ? resultRecordStream : null;
+            }
+        };
+
+        IOLocationType destIOLocationType = !testWithStreamInputAndOutput ? IOLocationType.FILE_SYSTEM : IOLocationType.RECORD_STREAM;
         Configuration configuration = getTestConfiguration(destinationFileName,
                 inputFileName,
-                IOType.FILE_SYSTEM,
+                destIOLocationType,
+                destIOLocationType,
                 testSortAware,
                 maxRecordsInMemory,
                 recordsPerOutputFile);
 
-        ExecutionSummary executionSummary =
-                new SortController<Integer>(configuration.getBaseConfig().getSortAware())
-                        .sort(configuration);
+        ExecutionSummary executionSummary = null;
+        List<Integer> streamedInputValues = new ArrayList<>();
+        if (!testWithStreamInputAndOutput) {
+          executionSummary = ExternalMergeSort.sort(configuration.getBaseConfig().getSortHandleProvider(), configuration);
+        }  else {
+            StreamInputSortController streamInputSortController =
+                    new StreamInputSortController(testSortAware, configuration);
+             List<Integer> inputRecords = getFileContentAsParsedInts(
+                    new File(Path.of(TEMP_LOCATION, inputFileName).toString()));
+            for (Integer input: inputRecords) {
+                streamInputSortController.input(input);
+            }
+            executionSummary = streamInputSortController.onCompleted();
+            streamedInputValues.addAll(inputRecords);
+        }
 
-        int noOfOutFiles = recordsPerOutputFile == 0 ? 1 :
-                (records + (recordsPerOutputFile - 1)) / recordsPerOutputFile;
+        int noOfOutFiles = getNoOfOutFiles(records, recordsPerOutputFile, testWithStreamInputAndOutput);
         assertEquals(executionSummary.getOutputFiles().size(), noOfOutFiles);
 
         for (int i = 0; i < noOfOutFiles; i++) {
@@ -219,16 +255,18 @@ public class SortControllerTest {
             Files.delete(path);
         }
 
-        int beginCallsOnResult = testSortAware.getOnBeginCallCount().get() - executionSummary.getTemporaryFileCount();
-        int completeCallsOnResult = testSortAware.getOnCompleteCallCount().get() - executionSummary.getTemporaryFileCount();
+        Collections.sort(streamedInputValues);
+        int beginCallsOnResult =
+                testSortAware.getOnBeginCallCount().get() - executionSummary.getTemporaryFileCount();
+        int completeCallsOnResult =
+                testSortAware.getOnCompleteCallCount().get() - executionSummary.getTemporaryFileCount();
+
+        assertEquals(resultRecordStream.getResultCollection(), streamedInputValues);
         assertEquals(beginCallsOnResult, noOfOutFiles);
         assertEquals(completeCallsOnResult, noOfOutFiles);
-
         assertEquals(testSortAware.getOnBeginCallCount().get() , noOfOutFiles + executionSummary.getTemporaryFileCount());
         assertEquals(testSortAware.getOnCompleteCallCount().get() , noOfOutFiles + executionSummary.getTemporaryFileCount());
-
         assertEquals(executionSummary.getTemporaryFileCount(), (records + maxRecordsInMemory - 1)/ maxRecordsInMemory);
-
         assertEquals(executionSummary.getNoOfRecordsSorted(), records);
         assertEquals(executionSummary.getNoOfRecordsSorted(), records);
         assertNotNull(executionSummary.getWriteToDestinationTime());
@@ -240,7 +278,16 @@ public class SortControllerTest {
         assertNotNull(executionSummary.getTemporaryFilesWriteTime());
         assertTrue(executionSummary.getTemporaryFileCount() > 0,
                 "Actual temporary file count: " + executionSummary.getTemporaryFileCount());
+
         Files.delete(Path.of(TEMP_LOCATION, inputFileName));
+    }
+
+    private int getNoOfOutFiles(int records, int recordsPerOutputFile, boolean testWithStreamInputAndOutput) {
+        if (testWithStreamInputAndOutput) {
+            return 0;
+        }
+        return recordsPerOutputFile == 0 ? 1 :
+                    (records + (recordsPerOutputFile - 1)) / recordsPerOutputFile;
     }
 
     private List<Integer> getFileContentAsParsedInts(File file) throws IOException {
@@ -257,15 +304,16 @@ public class SortControllerTest {
 
     private Configuration getTestConfiguration(String destinationFileName,
                                                String inputFileName,
-                                               IOType destinationType,
-                                               SortAware<Integer> sortAware,
+                                               IOLocationType sourceType,
+                                               IOLocationType destinationType,
+                                               SortHandleProvider<Integer> sortHandleProvider,
                                                int mxRecordsInMemory,
                                                int recordPerOutputFile) {
         return Configuration.newBuilder()
                     .setBaseConfig(BaseConfig.builder()
                             .setMaxRecordInMemory(mxRecordsInMemory)
                             .setMaxRecordInOutputBatch(recordPerOutputFile)
-                            .setSortAware(sortAware)
+                            .setSortAware(sortHandleProvider)
                             .setTemporaryFileDirectory(TEMP_LOCATION)
                             .build())
                     .setDestination(
@@ -277,7 +325,7 @@ public class SortControllerTest {
                     .setSource(
                             IOLocation.newBuilder()
                                     .setFileSystemPath(TEMP_LOCATION)
-                                    .setIoType(IOType.FILE_SYSTEM)
+                                    .setIoType(sourceType)
                                     .setObjectName(inputFileName)
                                     .build()
                     )
@@ -287,7 +335,6 @@ public class SortControllerTest {
     @Test
     public void propertyParserTest() throws IOException {
         String path = getAbsolutePath("/input.properties");
-        //FileReader fr = new FileReader(path);
         Configuration configuration = new PropertiesParser().parseConfiguration(path);
 
         assertNotNull(configuration);
@@ -297,7 +344,7 @@ public class SortControllerTest {
         assertEquals(configuration.getBaseConfig().getTemporaryFileDirectory(), TEMP_LOCATION);
         assertEquals(configuration.getBaseConfig().getMaxRecordInMemory(), 10);
         assertEquals(configuration.getBaseConfig().getMaxRecordInOutputBatch(), 0);
-        assertNotNull(configuration.getBaseConfig().getSortAware());
-        assertTrue(configuration.getBaseConfig().getSortAware() instanceof SortAware);
+        assertNotNull(configuration.getBaseConfig().getSortHandleProvider());
+        assertTrue(configuration.getBaseConfig().getSortHandleProvider() instanceof SortHandleProvider);
     }
 }

@@ -1,6 +1,9 @@
 package com.mozafaq.extmergesort;
 
-public interface BoundaryAware {
+/**
+ * @author Mozaffar Afaque
+ */
+public interface BoundedStreamAware {
 
     default void onBegin() {
         // Do nothing

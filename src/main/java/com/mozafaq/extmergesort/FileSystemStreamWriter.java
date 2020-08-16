@@ -11,11 +11,11 @@ public class FileSystemStreamWriter implements StreamWriter {
     private String fileLocation ;
     private OutputStream outputStream = null;
     private boolean isClosed;
-    private BoundaryAware boundaryAware;
+    private BoundedStreamAware boundedStreamAware;
 
-    public FileSystemStreamWriter(String fileLocation, BoundaryAware boundaryAware) {
+    public FileSystemStreamWriter(String fileLocation, BoundedStreamAware boundedStreamAware) {
         this.fileLocation = fileLocation;
-        this.boundaryAware = boundaryAware;
+        this.boundedStreamAware = boundedStreamAware;
         isClosed = false;
     }
 
@@ -25,14 +25,14 @@ public class FileSystemStreamWriter implements StreamWriter {
             throw new IllegalStateException("Stream is already open!");
         }
         outputStream = new FileOutputStream(fileLocation);
-        boundaryAware.onBegin();
+        boundedStreamAware.onBegin();
         return outputStream;
     }
 
     @Override
     public void close() throws IOException {
         if (!isClosed) {
-            boundaryAware.onComplete();
+            boundedStreamAware.onComplete();
             outputStream.close();
             isClosed = true;
         }

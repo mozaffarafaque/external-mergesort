@@ -10,15 +10,15 @@ public class RecordStreamWriter implements StreamWriter {
 
     private final OutputStream outputStream = OutputStream.nullOutputStream();
 
-    private BoundaryAware boundaryAware;
+    private BoundedStreamAware boundedStreamAware;
 
-    RecordStreamWriter(BoundaryAware boundaryAware) {
-        this.boundaryAware = boundaryAware;
+    RecordStreamWriter(BoundedStreamAware boundedStreamAware) {
+        this.boundedStreamAware = boundedStreamAware;
     }
 
     @Override
     public OutputStream open() throws IOException {
-        boundaryAware.onBegin();
+        boundedStreamAware.onBegin();
         return outputStream;
     }
 
@@ -34,7 +34,6 @@ public class RecordStreamWriter implements StreamWriter {
 
     @Override
     public void close() throws IOException {
-        boundaryAware.onComplete();
-
+        boundedStreamAware.onComplete();
     }
 }

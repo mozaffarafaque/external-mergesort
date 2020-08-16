@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author Mozaffar Afaque
  */
-public class TestSortAware implements SortAware<Integer> {
+public class TestSortHandleProvider implements SortHandleProvider<Integer> {
 
     private AtomicInteger onBeginCallCount = new AtomicInteger();
     private AtomicInteger onCompleteCallCount = new AtomicInteger();
@@ -59,7 +59,7 @@ public class TestSortAware implements SortAware<Integer> {
     }
 
     @Override
-    public ResultRecordStream<Integer> resultRecordStream() {
+    public StreamResultOutputHandler<Integer> streamResultOutputHandler() {
         return null;
     }
 

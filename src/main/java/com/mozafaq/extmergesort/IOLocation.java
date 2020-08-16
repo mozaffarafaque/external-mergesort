@@ -6,7 +6,7 @@ import java.util.Objects;
  * @author Mozaffar Afaque
  */
 public class IOLocation {
-    private IOType ioType;
+    private IOLocationType ioLocationType;
     private String s3Path;
     private String s3Region;
     private String fileSystemPath;
@@ -24,8 +24,8 @@ public class IOLocation {
 
         private IOLocation ioLocation = new IOLocation();
 
-        public IOLocationBuilder setIoType(IOType ioType) {
-            ioLocation.ioType = ioType;
+        public IOLocationBuilder setIoType(IOLocationType ioLocationType) {
+            ioLocation.ioLocationType = ioLocationType;
             return this;
         }
 
@@ -50,8 +50,8 @@ public class IOLocation {
         }
 
         public IOLocation build() {
-            Objects.requireNonNull(ioLocation.ioType, "IO Type cannot be null");
-            if (ioLocation.ioType != IOType.RECORD_STREAM) {
+            Objects.requireNonNull(ioLocation.ioLocationType, "IO Type cannot be null");
+            if (ioLocation.ioLocationType != IOLocationType.RECORD_STREAM) {
                 Objects.requireNonNull(ioLocation.objectName, "Object name cannot be null");
             }
             IOLocation ioLocationTemp = ioLocation;
@@ -60,8 +60,8 @@ public class IOLocation {
         }
     }
 
-    public IOType getIoType() {
-        return ioType;
+    public IOLocationType getIoLocationType() {
+        return ioLocationType;
     }
 
     public String getS3Path() {
@@ -84,7 +84,7 @@ public class IOLocation {
     @Override
     public String toString() {
         return "IOLocation{" +
-                "ioType=" + ioType +
+                "ioLocationType=" + ioLocationType +
                 ", s3Path='" + s3Path + '\'' +
                 ", s3Region='" + s3Region + '\'' +
                 ", fileSystemPath='" + fileSystemPath + '\'' +

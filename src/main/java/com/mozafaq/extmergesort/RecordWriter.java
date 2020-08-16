@@ -6,7 +6,7 @@ import java.io.OutputStream;
 /**
  * @author Mozaffar Afaque
  */
-public interface RecordWriter<T> extends BoundaryAware {
+public interface RecordWriter<T> extends BoundedStreamAware {
 
     void writeRecord(OutputStream outputStream, T record) throws IOException;
 }

@@ -14,24 +14,25 @@ import java.nio.file.Path;
 /**
  * @author Mozaffar Afaque
  */
-public class AWSS3BucketStreamWriter implements StreamWriter {
+
+class AWSS3BucketStreamWriter implements StreamWriter {
 
     private boolean isClosed = false;
     private String path;
     private String objectName ;
     private String region;
-    private BoundaryAware boundaryAware;
+    private BoundedStreamAware boundedStreamAware;
 
     final private StreamWriter tempStreamFileWriter;
     private AWSCredentials awsCredsAwsCredentials;
     private AmazonS3 s3client = null;
 
-    public AWSS3BucketStreamWriter(IOLocation ioLocation, StreamWriter tempStreamFileWriter, BoundaryAware boundaryAware) {
+    public AWSS3BucketStreamWriter(IOLocation ioLocation, StreamWriter tempStreamFileWriter, BoundedStreamAware boundedStreamAware) {
         this.path = ioLocation.getS3Path();
         this.objectName = ioLocation.getObjectName();
         this.region = ioLocation.getS3Region();
         this.tempStreamFileWriter = tempStreamFileWriter;
-        this.boundaryAware = boundaryAware;
+        this.boundedStreamAware = boundedStreamAware;
     }
 
     public void create() {
@@ -45,7 +46,7 @@ public class AWSS3BucketStreamWriter implements StreamWriter {
     public OutputStream open() throws IOException {
 
         OutputStream outputStream = tempStreamFileWriter.open();
-        boundaryAware.onBegin();
+        boundedStreamAware.onBegin();
         return outputStream;
     }
 
@@ -71,7 +72,7 @@ public class AWSS3BucketStreamWriter implements StreamWriter {
     @Override
     public void close() throws IOException {
         if (!isClosed) {
-            boundaryAware.onComplete();
+            boundedStreamAware.onComplete();
             transferData(tempStreamFileWriter.getFullPath());
             tempStreamFileWriter.close();
             Files.delete(Path.of(tempStreamFileWriter.getFullPath()));

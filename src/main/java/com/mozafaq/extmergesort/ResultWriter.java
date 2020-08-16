@@ -43,7 +43,7 @@ public class ResultWriter<T> {
         final IOLocation destinationLocation = configuration.getDestination();
         IOLocation ioLocation = IOLocation.newBuilder()
                 .setFileSystemPath(destinationLocation.getFileSystemPath())
-                .setIoType(destinationLocation.getIoType())
+                .setIoType(destinationLocation.getIoLocationType())
                 .setObjectName(getObjectName())
                 .setS3Path(destinationLocation.getS3Path())
                 .setS3Region(destinationLocation.getS3Region())
@@ -57,7 +57,7 @@ public class ResultWriter<T> {
     }
 
     private String getObjectName() {
-        switch (configuration.getDestination().getIoType()) {
+        switch (configuration.getDestination().getIoLocationType()) {
             case RECORD_STREAM:
                 return null;
             case FILE_SYSTEM:
@@ -80,7 +80,7 @@ public class ResultWriter<T> {
                 int padding = digits - 1;
                 return configuration.getDestination().getObjectName() + "-sorted-" + PREFIXES[padding] + fileCounter;
             default:
-                throw new IllegalStateException(configuration.getDestination().getIoType() + " Is not handled correctly");
+                throw new IllegalStateException(configuration.getDestination().getIoLocationType() + " Is not handled correctly");
         }
     }
 

@@ -73,7 +73,7 @@ public class PropertiesParser {
                  baseConfigBuilder.setMaxRecordInOutputBatch(Integer.parseInt(propertyValue));
                  break;
              case SOURCE_IO_TYPE:
-                 ioLocationBuilderSource.setIoType(IOType.valueOf(propertyValue));
+                 ioLocationBuilderSource.setIoType(IOLocationType.valueOf(propertyValue));
                  break;
              case SOURCE_S3_PATH:
                  ioLocationBuilderSource.setS3Path(propertyValue);
@@ -88,7 +88,7 @@ public class PropertiesParser {
                  ioLocationBuilderSource.setObjectName(propertyValue);
                  break;
              case DESTINATION_IO_TYPE:
-                 ioLocationBuilderDest.setIoType(IOType.valueOf(propertyValue));
+                 ioLocationBuilderDest.setIoType(IOLocationType.valueOf(propertyValue));
                  break;
              case DESTINATION_S3_PATH:
                  ioLocationBuilderDest.setS3Path(propertyValue);
@@ -107,9 +107,9 @@ public class PropertiesParser {
                  Objects.requireNonNull(propertyValue);
                  try {
                      Class clazz = Class.forName(propertyValue);
-                     Constructor<SortAware> constructor = clazz.getConstructor(new Class[]{});
-                     SortAware sortAware = constructor.newInstance(new Object[]{});
-                     baseConfigBuilder.setSortAware(sortAware);
+                     Constructor<SortHandleProvider> constructor = clazz.getConstructor(new Class[]{});
+                     SortHandleProvider sortHandleProvider = constructor.newInstance(new Object[]{});
+                     baseConfigBuilder.setSortAware(sortHandleProvider);
 
                  } catch (ClassNotFoundException |
                          NoSuchMethodException |

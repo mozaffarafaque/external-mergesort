@@ -12,7 +12,7 @@ import com.amazonaws.services.s3.model.*;
 /**
  * @author Mozaffar Afaque
  */
-public class AWSS3BucketStreamReader implements StreamReader {
+class AWSS3BucketStreamReader implements StreamReader {
 
     private S3ObjectInputStream inputStream = null;
     private boolean isClosed = false;

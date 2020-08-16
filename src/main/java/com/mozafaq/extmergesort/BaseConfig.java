@@ -11,7 +11,7 @@ public class BaseConfig {
     private int maxRecordInMemory;
     private String temporaryFileDirectory;
     private int maxRecordInOutputBatch;
-    private SortAware sortAware;
+    private SortHandleProvider sortHandleProvider;
 
     private BaseConfig() {
     }
@@ -41,13 +41,13 @@ public class BaseConfig {
             return this;
         }
 
-        public BaseConfigBuilder setSortAware(SortAware sortAware) {
-            baseConfig.sortAware = sortAware;
+        public BaseConfigBuilder setSortAware(SortHandleProvider sortHandleProvider) {
+            baseConfig.sortHandleProvider = sortHandleProvider;
             return this;
         }
 
         public BaseConfig build() {
-            Objects.requireNonNull(baseConfig.sortAware , "Sort Aware object cannot be null.");
+            Objects.requireNonNull(baseConfig.sortHandleProvider, "Sort Aware object cannot be null.");
             Objects.requireNonNull(baseConfig.temporaryFileDirectory , "Temp directory cannot be null.");
             if (!new File(baseConfig.temporaryFileDirectory).isDirectory()) {
                 throw new IllegalArgumentException("Temp location must be directory");
@@ -70,8 +70,8 @@ public class BaseConfig {
         return maxRecordInOutputBatch;
     }
 
-    public SortAware getSortAware() {
-        return sortAware;
+    public SortHandleProvider getSortHandleProvider() {
+        return sortHandleProvider;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class BaseConfig {
                 "maxRecordInMemory=" + maxRecordInMemory +
                 ", temporaryFileDirectory='" + temporaryFileDirectory + '\'' +
                 ", maxRecordInOutputBatch=" + maxRecordInOutputBatch +
-                ", sortAware=" + sortAware +
+                ", sortHandleProvider=" + sortHandleProvider +
                 '}';
     }
 }

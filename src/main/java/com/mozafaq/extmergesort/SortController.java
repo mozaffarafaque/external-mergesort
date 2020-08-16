@@ -7,13 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * @author Mozaffar Afaque
  */
-public class SortController<T> {
+class SortController<T> {
 
     private RecordReader<T> recordReader;
     final private RecordWriter<T> recordWriter;
@@ -23,44 +24,51 @@ public class SortController<T> {
     private long timeForReadingRecordsFromSource;
     private long timeFroWritingTemporaryFiles;
 
-    public SortController(SortAware<T> sortAware) {
-        Objects.requireNonNull(sortAware);
-        Objects.requireNonNull(sortAware.recordReader());
-        Objects.requireNonNull(sortAware.recordWriter());
-        Objects.requireNonNull(sortAware.recordComparator());
-        this.recordReader = sortAware.recordReader();
-        this.recordWriter = sortAware.recordWriter();
-        final ResultRecordStream<T> resultRecordStream = sortAware.resultRecordStream();
-        this.resultWriter = resultRecordStream == null ? this.recordWriter : new RecordWriter<T>() {
+    public SortController(SortHandleProvider<T> sortHandleProvider) {
+        Objects.requireNonNull(sortHandleProvider);
+        Objects.requireNonNull(sortHandleProvider.recordReader());
+        Objects.requireNonNull(sortHandleProvider.recordWriter());
+        Objects.requireNonNull(sortHandleProvider.recordComparator());
+        this.recordReader = sortHandleProvider.recordReader();
+        this.recordWriter = sortHandleProvider.recordWriter();
+        final StreamResultOutputHandler<T> streamResultOutputHandler = sortHandleProvider.streamResultOutputHandler();
+        this.resultWriter = streamResultOutputHandler == null ? this.recordWriter : new RecordWriter<T>() {
             @Override
             public void onBegin() {
-                resultRecordStream.onBegin();
+                streamResultOutputHandler.onBegin();
             }
             @Override
             public void onComplete() {
-                resultRecordStream.onComplete();
+                streamResultOutputHandler.onComplete();
             }
             @Override
             public void writeRecord(OutputStream outputStream, T record) throws IOException {
-                resultRecordStream.accept(record);
+                streamResultOutputHandler.accept(record);
             }
         };
 
-        this.comparator = sortAware.recordComparator();
+        this.comparator = sortHandleProvider.recordComparator();
         this.timeForReadingRecordsFromSource = 0;
         this.timeFroWritingTemporaryFiles = 0;
     }
 
+    /**
+     * Sorts the records.
+     */
     public ExecutionSummary sort(Configuration configuration) throws IOException {
-
         long startTime = System.currentTimeMillis();
         Objects.requireNonNull(configuration);
 
-        List<String> temporaryFiles = splitIntoLocalFilesSorted(configuration.getBaseConfig(),
-                configuration.getSource());
+        List<String> temporaryFiles = splitIntoLocalFilesSorted(configuration.getBaseConfig(), configuration.getSource());
+        ExecutionSummary executionSummary = sortKSortedFiles(configuration, temporaryFiles,  startTime);
+        clearTemporaryFiles(temporaryFiles);
+        return executionSummary;
+    }
+
+    ExecutionSummary sortKSortedFiles(Configuration configuration, List<String> files, long startTime) throws IOException {
 
         List<StreamReader> streamReaders =
-               temporaryFiles.stream()
+                files.stream()
                        .map(e -> InputStreamFactory.getTempStreamReader(e))
                        .collect(Collectors.toList());
 
@@ -99,7 +107,6 @@ public class SortController<T> {
         }
 
         resultWriter.writingComplete();
-        clearTemporaryFiles(temporaryFiles);
 
         return ExecutionSummary.newBuilder()
                 .setNoOfRecordsSorted(recordsWritten)
@@ -110,11 +117,11 @@ public class SortController<T> {
                 .setSplitTimeTakenIntoStagedFile(Duration.ofMillis(timeTakenToSplitFiles))
                 .setOutputFiles(resultWriter.getOutFiles())
                 .setTimeTakenInMergingAndWriting(Duration.ofMillis(System.currentTimeMillis() - startMergingTime))
-                .setTemporaryFileCount(temporaryFiles.size())
+                .setTemporaryFileCount(files.size())
                 .build();
     }
 
-    private void clearTemporaryFiles(List<String> temporaryFiles) {
+    void clearTemporaryFiles(List<String> temporaryFiles) {
         for (String tempFile: temporaryFiles) {
             try {
                 Files.delete(Path.of(tempFile));
@@ -130,9 +137,8 @@ public class SortController<T> {
         return batchSizeForReadingFromInput;
     }
 
-    public List<String> splitIntoLocalFilesSorted(BaseConfig baseConfig, IOLocation sourceLocation) throws IOException {
-        StreamReader sourceReader =
-                InputStreamFactory.newStreamReader(sourceLocation);
+    List<String> splitIntoLocalFilesSorted(BaseConfig baseConfig, IOLocation sourceLocation) throws IOException {
+        StreamReader sourceReader = InputStreamFactory.newStreamReader(sourceLocation);
 
         List<String> temporaryFiles ;
         final BatchReader<T> batchReader = new BatchReader<>(baseConfig.getMaxRecordInMemory());
@@ -153,6 +159,24 @@ public class SortController<T> {
         return temporaryFiles;
     }
 
+    /**
+     * Collects the set of records in the temporary file.
+     *
+     */
+    List<String> collect(BaseConfig baseConfig, List<T> records) throws IOException {
+
+        AtomicBoolean atomicBoolean = new AtomicBoolean(false);
+        Supplier<List<T>> recordSupplier = () -> {
+            if (!atomicBoolean.get()) {
+                atomicBoolean.set(true);
+                return records;
+            } else {
+                return Collections.emptyList();
+            }
+        };
+        return writeSortedFiles(baseConfig, recordSupplier);
+    }
+
     private List<String> writeSortedFiles(BaseConfig baseConfig, Supplier<List<T>> recordSupplier) throws IOException {
 
         List<String> temporaryFiles = new ArrayList<>();
@@ -162,8 +186,6 @@ public class SortController<T> {
         while (batchRecords.size() > 0) {
             start = System.currentTimeMillis();
             Collections.sort(batchRecords, comparator);
-//            StreamWriter writer =
-//                   OutputStreamFactory.getTempStreamWriter(baseConfig.getTemporaryFileDirectory(), recordWriter);
             try (StreamWriter writer = OutputStreamFactory.getTempStreamWriter(baseConfig.getTemporaryFileDirectory(), recordWriter)) {
                 BatchReader.writeFullBatch(batchRecords.iterator(), writer.open(), recordWriter);
                 temporaryFiles.add(writer.getFullPath());

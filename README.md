@@ -15,11 +15,11 @@ This can be done in limited memory.
 the followings (a different source and destination is possible).
  - File object stored in AWS S3 bucket
  - A file system
- - Stream of records (Only supported for output of sorted records currently).
+ - Stream of records.
  
- Other configurations in the input are accepted in `datapipes.extmergesort.algorithm.Configuration`.
+ Other configurations in the input are accepted in `com.mozafaq.extmergesort.Configuration`.
  The configuration object can be constructed from properties file using 
- `datapipes.extmergesort.algorithm.PropertiesParser`. Example
+ `com.mozafaq.extmergesort.PropertiesParser`. Example
  of input parameters and their significance is present in the example file 
  [here](src/main/resources/sample-input.properties).
  
@@ -30,7 +30,7 @@ the followings (a different source and destination is possible).
  - Logic to write a record to `OutputStream`
 
 One can provide custom logic by implementation of 
-interface `datapipes.extmergesort.algorithm.SortAware`
+interface `com.mozafaq.extmergesort.SortHandleProvider`
 
 ## Build
 

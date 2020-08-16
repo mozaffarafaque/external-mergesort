@@ -10,18 +10,18 @@ import java.util.UUID;
  */
 public class OutputStreamFactory {
 
-    public static StreamWriter newStreamWriter(IOLocation location, String tempLocation, BoundaryAware boundaryAware) {
+    public static StreamWriter newStreamWriter(IOLocation location, String tempLocation, BoundedStreamAware boundedStreamAware) {
         Objects.requireNonNull(location);
-        Objects.requireNonNull(location.getIoType());
+        Objects.requireNonNull(location.getIoLocationType());
 
-        switch (location.getIoType()) {
+        switch (location.getIoLocationType()) {
             case AWS_S3_BUCKET:
                 Objects.requireNonNull(location.getS3Path());
                 Objects.requireNonNull(location.getObjectName());
 
-                StreamWriter streamFileWriter = getTempStreamWriter(tempLocation, boundaryAware);
+                StreamWriter streamFileWriter = getTempStreamWriter(tempLocation, boundedStreamAware);
                 AWSS3BucketStreamWriter awsS3BucketStreamWriter =
-                        new AWSS3BucketStreamWriter(location, streamFileWriter, boundaryAware);
+                        new AWSS3BucketStreamWriter(location, streamFileWriter, boundedStreamAware);
                 AWSCredentials awsCredentials =
                         AWSUtils.createAWSCredentials(AWSUtils.AWS_PROFILE_DEFAULT);
                 awsS3BucketStreamWriter.setAwsCredentials(awsCredentials);
@@ -31,18 +31,18 @@ public class OutputStreamFactory {
                 Objects.requireNonNull(location.getFileSystemPath());
                 Objects.requireNonNull(location.getObjectName());
                 String fileLocation = String.format("%s/%s", location.getFileSystemPath(), location.getObjectName());
-                return new FileSystemStreamWriter(fileLocation, boundaryAware);
+                return new FileSystemStreamWriter(fileLocation, boundedStreamAware);
             case RECORD_STREAM:
-                return new RecordStreamWriter(boundaryAware);
+                return new RecordStreamWriter(boundedStreamAware);
         }
 
-        throw new IllegalStateException(location.getIoType() + " case is not implemented");
+        throw new IllegalStateException(location.getIoLocationType() + " case is not implemented");
     }
 
-    public static StreamWriter getTempStreamWriter(String path, BoundaryAware boundaryAware) {
+    public static StreamWriter getTempStreamWriter(String path, BoundedStreamAware boundedStreamAware) {
         Objects.requireNonNull(path);
         String objectName = UUID.randomUUID().toString() + ".tmp";
-        return new FileSystemStreamWriter(String.format("%s/%s", path, objectName), boundaryAware);
+        return new FileSystemStreamWriter(String.format("%s/%s", path, objectName), boundedStreamAware);
     }
 
 }

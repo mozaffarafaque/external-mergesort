@@ -11,9 +11,9 @@ public class InputStreamFactory {
 
     public static StreamReader newStreamReader(IOLocation location) {
         Objects.requireNonNull(location);
-        Objects.requireNonNull(location.getIoType());
+        Objects.requireNonNull(location.getIoLocationType());
 
-        switch (location.getIoType()) {
+        switch (location.getIoLocationType()) {
             case AWS_S3_BUCKET:
                 Objects.requireNonNull(location.getS3Path());
                 Objects.requireNonNull(location.getObjectName());
@@ -36,7 +36,7 @@ public class InputStreamFactory {
                 );
         }
 
-        throw new IllegalStateException(location.getIoType() + " case is not implemented");
+        throw new IllegalStateException(location.getIoLocationType() + " case is not implemented");
     }
 
     public static StreamReader getTempStreamReader(String fileLocation) {

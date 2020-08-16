@@ -44,8 +44,8 @@ public class Configuration {
             Objects.requireNonNull(configuration.destination, "Destination must be non-null");
             Objects.requireNonNull(configuration.source, "Source must be non-null");
 
-            if (configuration.getDestination().getIoType() == IOType.RECORD_STREAM) {
-                Objects.requireNonNull(configuration.baseConfig.getSortAware().resultRecordStream(),
+            if (configuration.getDestination().getIoLocationType() == IOLocationType.RECORD_STREAM) {
+                Objects.requireNonNull(configuration.baseConfig.getSortHandleProvider().streamResultOutputHandler(),
                         "Result record stream must be non-null for destination being RECORD_STREAM.");
             }
             Configuration configurationTemp = configuration;

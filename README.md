@@ -15,6 +15,7 @@ This can be done in limited memory.
 the followings (a different source and destination is possible).
  - File object stored in AWS S3 bucket
  - A file system
+ - Stream of records (Only supported for output of sorted records currently).
  
  Other configurations in the input are accepted in `datapipes.extmergesort.algorithm.Configuration`.
  The configuration object can be constructed from properties file using 

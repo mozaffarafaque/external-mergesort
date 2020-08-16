@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -15,8 +16,9 @@ import java.util.stream.Collectors;
 public class SortController<T> {
 
     private RecordReader<T> recordReader;
-    private RecordWriter<T> recordWriter;
-    private Comparator<T> comparator;
+    final private RecordWriter<T> recordWriter;
+    final private RecordWriter<T> resultWriter;
+    final private Comparator<T> comparator;
 
     private long timeForReadingRecordsFromSource;
     private long timeFroWritingTemporaryFiles;
@@ -28,6 +30,22 @@ public class SortController<T> {
         Objects.requireNonNull(sortAware.recordComparator());
         this.recordReader = sortAware.recordReader();
         this.recordWriter = sortAware.recordWriter();
+        final ResultRecordStream<T> resultRecordStream = sortAware.resultRecordStream();
+        this.resultWriter = resultRecordStream == null ? this.recordWriter : new RecordWriter<T>() {
+            @Override
+            public void onBegin() {
+                resultRecordStream.onBegin();
+            }
+            @Override
+            public void onComplete() {
+                resultRecordStream.onComplete();
+            }
+            @Override
+            public void writeRecord(OutputStream outputStream, T record) throws IOException {
+                resultRecordStream.accept(record);
+            }
+        };
+
         this.comparator = sortAware.recordComparator();
         this.timeForReadingRecordsFromSource = 0;
         this.timeFroWritingTemporaryFiles = 0;
@@ -52,7 +70,7 @@ public class SortController<T> {
                 getRecordCountPerPartition(configuration.getBaseConfig().getMaxRecordInMemory(), streamReaders.size() + 1);
 
         long startMergingTime = System.currentTimeMillis();
-        Batch<T> batchReader = new Batch<>(batchSizeForReadingFromInput);
+        BatchReader<T> batchReader = new BatchReader<>(batchSizeForReadingFromInput);
         List<ComparisionIterator<T>> comparisionIterators = new ArrayList<>();
         for (StreamReader sr : streamReaders) {
             sr.open();
@@ -63,10 +81,9 @@ public class SortController<T> {
                 new PriorityQueue<>((e1, e2) -> comparator.compare(e1.current(), e2.current()));
         comparisionIterators.stream().forEach(e -> priorityQueue.add(e));
 
-        ResultWriter<T> resultWriter = new ResultWriter<T>(batchSizeForReadingFromInput, configuration, recordWriter);
+        ResultWriter<T> resultWriter = new ResultWriter<T>(batchSizeForReadingFromInput, configuration, this.resultWriter);
 
         int recordsWritten = 0;
-        long heapAdjustmentStartTime = System.nanoTime();
 
         while (!priorityQueue.isEmpty()) {
 
@@ -93,6 +110,7 @@ public class SortController<T> {
                 .setSplitTimeTakenIntoStagedFile(Duration.ofMillis(timeTakenToSplitFiles))
                 .setOutputFiles(resultWriter.getOutFiles())
                 .setTimeTakenInMergingAndWriting(Duration.ofMillis(System.currentTimeMillis() - startMergingTime))
+                .setTemporaryFileCount(temporaryFiles.size())
                 .build();
     }
 
@@ -116,29 +134,46 @@ public class SortController<T> {
         StreamReader sourceReader =
                 InputStreamFactory.newStreamReader(sourceLocation);
 
-        List<String> temporaryFiles = new ArrayList<>();
-        Batch<T> batch = new Batch<>(baseConfig.getMaxRecordInMemory());
+        List<String> temporaryFiles ;
+        final BatchReader<T> batchReader = new BatchReader<>(baseConfig.getMaxRecordInMemory());
 
-        try(InputStream sourceReaderStream = sourceReader.open()) {
-            long start = System.currentTimeMillis();
-            List<T> batchRecords = batch.readFullBatch(sourceReaderStream, recordReader);
-            timeForReadingRecordsFromSource += (System.currentTimeMillis() - start);
-            while (batchRecords.size() > 0) {
-                start = System.currentTimeMillis();
-                Collections.sort(batchRecords, comparator);
-                StreamWriter writer =
-                       OuputStreamFactory.getTempStreamWriter(baseConfig.getTemporaryFileDirectory());
-                try (OutputStream outStream = writer.open()) {
-                   Batch.writeFullBatch(batchRecords.iterator(), outStream, recordWriter);
-                   temporaryFiles.add(writer.getFullPath());
+        try(final InputStream sourceReaderStream = sourceReader.open()) {
+
+            Supplier<List<T>> recordSupplier = () -> {
+                try {
+                    return batchReader.readFullBatch(sourceReaderStream, recordReader);
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
                 }
-                batchRecords.clear();
-                timeFroWritingTemporaryFiles += (System.currentTimeMillis() - start);
+            };
 
-                start = System.currentTimeMillis();
-                batchRecords = batch.readFullBatch(sourceReaderStream, recordReader);
-                timeForReadingRecordsFromSource += (System.currentTimeMillis() - start);
+            temporaryFiles = writeSortedFiles(baseConfig, recordSupplier);
+        }
+
+        return temporaryFiles;
+    }
+
+    private List<String> writeSortedFiles(BaseConfig baseConfig, Supplier<List<T>> recordSupplier) throws IOException {
+
+        List<String> temporaryFiles = new ArrayList<>();
+        long start = System.currentTimeMillis();
+        List<T> batchRecords = recordSupplier.get();
+        timeForReadingRecordsFromSource += (System.currentTimeMillis() - start);
+        while (batchRecords.size() > 0) {
+            start = System.currentTimeMillis();
+            Collections.sort(batchRecords, comparator);
+//            StreamWriter writer =
+//                   OutputStreamFactory.getTempStreamWriter(baseConfig.getTemporaryFileDirectory(), recordWriter);
+            try (StreamWriter writer = OutputStreamFactory.getTempStreamWriter(baseConfig.getTemporaryFileDirectory(), recordWriter)) {
+                BatchReader.writeFullBatch(batchRecords.iterator(), writer.open(), recordWriter);
+                temporaryFiles.add(writer.getFullPath());
             }
+            batchRecords.clear();
+            timeFroWritingTemporaryFiles += (System.currentTimeMillis() - start);
+
+            start = System.currentTimeMillis();
+            batchRecords = recordSupplier.get();
+            timeForReadingRecordsFromSource += (System.currentTimeMillis() - start);
         }
 
         return temporaryFiles;

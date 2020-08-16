@@ -49,7 +49,6 @@ public class PropertiesParser {
                        ioLocationBuilderSource,
                        ioLocationBuilderDest);
             }
-
         }
 
         configurationBuilder.setDestination(ioLocationBuilderDest.build());

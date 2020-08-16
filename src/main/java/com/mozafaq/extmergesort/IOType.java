@@ -5,5 +5,7 @@ package com.mozafaq.extmergesort;
  */
 public enum IOType {
     AWS_S3_BUCKET,
+    // Only supported for output of sorted records
+    RECORD_STREAM,
     FILE_SYSTEM;
 }

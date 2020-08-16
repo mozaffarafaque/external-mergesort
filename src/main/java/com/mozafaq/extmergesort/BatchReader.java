@@ -8,10 +8,10 @@ import java.util.*;
 /**
  * @author Mozaffar Afaque
  */
-class Batch<T> {
+class BatchReader<T> {
     private final int size;
 
-    public Batch(int size) {
+    public BatchReader(int size) {
         this.size = size;
     }
 
@@ -63,10 +63,10 @@ class Batch<T> {
                     if (isDone) {
                         return null;
                     }
-                    readBatch = Batch.this.readFullBatch(inputStream, reader);
+                    readBatch = BatchReader.this.readFullBatch(inputStream, reader);
                     itr = readBatch.iterator();
                     T record = itr.hasNext() ? itr.next() : null;
-                    isDone = readBatch.size() < Batch.this.size;
+                    isDone = readBatch.size() < BatchReader.this.size;
                     return record;
 
                 } catch (IOException e) {
@@ -98,7 +98,5 @@ class Batch<T> {
                 return t;
             }
         };
-
     }
-
 }

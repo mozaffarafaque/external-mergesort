@@ -31,6 +31,7 @@ public class ResultWriter<T> {
         this.maxRecordPerOutputFile = configuration.getBaseConfig().getMaxRecordInOutputBatch();
         this.configuration = configuration;
         isSingleFile = maxRecordPerOutputFile == 0;
+
         this.writer = writer;
         fileCounter = 0;
         buffer = new ArrayList<>(this.bufferSize);
@@ -48,29 +49,39 @@ public class ResultWriter<T> {
                 .setS3Region(destinationLocation.getS3Region())
                 .build();
 
-        outFiles.add(ioLocation.getObjectName());
-        return OuputStreamFactory.newStreamWriter(ioLocation,
-                configuration.getBaseConfig().getTemporaryFileDirectory());
+        if (ioLocation.getObjectName() != null) {
+            outFiles.add(ioLocation.getObjectName());
+        }
+        return OutputStreamFactory.newStreamWriter(ioLocation,
+                configuration.getBaseConfig().getTemporaryFileDirectory(), writer);
     }
 
     private String getObjectName() {
-        if(isSingleFile) {
-           return configuration.getDestination().getObjectName() + "-sorted";
+        switch (configuration.getDestination().getIoType()) {
+            case RECORD_STREAM:
+                return null;
+            case FILE_SYSTEM:
+            case AWS_S3_BUCKET:
+                if (isSingleFile) {
+                    return configuration.getDestination().getObjectName() + "-sorted";
+                }
+
+                int digits = 0;
+                int counter = fileCounter;
+                do {
+                    counter /= 10;
+                    digits++;
+                } while (counter > 0);
+
+                if (digits > 4) {
+                    throw new IllegalStateException("There are too many output files - More than 10K files not supported");
+                }
+
+                int padding = digits - 1;
+                return configuration.getDestination().getObjectName() + "-sorted-" + PREFIXES[padding] + fileCounter;
+            default:
+                throw new IllegalStateException(configuration.getDestination().getIoType() + " Is not handled correctly");
         }
-
-        int digits = 0;
-        int counter = fileCounter;
-        do {
-            counter /= 10;
-            digits++;
-        } while (counter > 0);
-
-        if (digits > 4) {
-            throw new IllegalStateException("There are too many output files - More than 10K files not supported");
-        }
-
-        int padding = digits - 1;
-        return configuration.getDestination().getObjectName() + "-sorted-" + PREFIXES[padding] + fileCounter;
     }
 
     public void writeRecord(T record) throws IOException {
@@ -109,7 +120,7 @@ public class ResultWriter<T> {
         if (isSingleFile) {
             resetStream();
             recordInCurrentStream += buffer.size();
-            Batch.writeFullBatch(buffer.iterator(), streamWriter.get(), writer);
+            BatchReader.writeFullBatch(buffer.iterator(), streamWriter.get(), writer);
             buffer.clear();
             return;
         }
@@ -120,7 +131,7 @@ public class ResultWriter<T> {
                 recordInCurrentStream = 0;
                 fileCounter++;
             }
-            Batch.writeSingleRecord(streamWriter.get(), writer, buffer.get(counter));
+            BatchReader.writeSingleRecord(streamWriter.get(), writer, buffer.get(counter));
             recordInCurrentStream++;
             counter++;
         }

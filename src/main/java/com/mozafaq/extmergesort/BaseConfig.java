@@ -1,5 +1,8 @@
 package com.mozafaq.extmergesort;
 
+import java.io.File;
+import java.util.Objects;
+
 /**
  * @author Mozaffar Afaque
  */
@@ -44,6 +47,11 @@ public class BaseConfig {
         }
 
         public BaseConfig build() {
+            Objects.requireNonNull(baseConfig.sortAware , "Sort Aware object cannot be null.");
+            Objects.requireNonNull(baseConfig.temporaryFileDirectory , "Temp directory cannot be null.");
+            if (!new File(baseConfig.temporaryFileDirectory).isDirectory()) {
+                throw new IllegalArgumentException("Temp location must be directory");
+            }
             BaseConfig baseConfigTemp = baseConfig;
             baseConfig = new BaseConfig();
             return baseConfigTemp;

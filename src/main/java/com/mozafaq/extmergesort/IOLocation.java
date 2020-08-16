@@ -1,9 +1,11 @@
 package com.mozafaq.extmergesort;
 
+import java.util.Objects;
+
 /**
  * @author Mozaffar Afaque
  */
-public class IOLocation{
+public class IOLocation {
     private IOType ioType;
     private String s3Path;
     private String s3Region;
@@ -48,6 +50,10 @@ public class IOLocation{
         }
 
         public IOLocation build() {
+            Objects.requireNonNull(ioLocation.ioType, "IO Type cannot be null");
+            if (ioLocation.ioType != IOType.RECORD_STREAM) {
+                Objects.requireNonNull(ioLocation.objectName, "Object name cannot be null");
+            }
             IOLocation ioLocationTemp = ioLocation;
             ioLocation = new IOLocation();
             return ioLocationTemp;

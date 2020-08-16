@@ -20,16 +20,18 @@ public class AWSS3BucketStreamWriter implements StreamWriter {
     private String path;
     private String objectName ;
     private String region;
+    private BoundaryAware boundaryAware;
 
     final private StreamWriter tempStreamFileWriter;
     private AWSCredentials awsCredsAwsCredentials;
     private AmazonS3 s3client = null;
 
-    public AWSS3BucketStreamWriter(IOLocation ioLocation, StreamWriter tempStreamFileWriter) {
+    public AWSS3BucketStreamWriter(IOLocation ioLocation, StreamWriter tempStreamFileWriter, BoundaryAware boundaryAware) {
         this.path = ioLocation.getS3Path();
         this.objectName = ioLocation.getObjectName();
         this.region = ioLocation.getS3Region();
         this.tempStreamFileWriter = tempStreamFileWriter;
+        this.boundaryAware = boundaryAware;
     }
 
     public void create() {
@@ -41,7 +43,10 @@ public class AWSS3BucketStreamWriter implements StreamWriter {
 
     @Override
     public OutputStream open() throws IOException {
-       return tempStreamFileWriter.open();
+
+        OutputStream outputStream = tempStreamFileWriter.open();
+        boundaryAware.onBegin();
+        return outputStream;
     }
 
     @Override
@@ -66,6 +71,7 @@ public class AWSS3BucketStreamWriter implements StreamWriter {
     @Override
     public void close() throws IOException {
         if (!isClosed) {
+            boundaryAware.onComplete();
             transferData(tempStreamFileWriter.getFullPath());
             tempStreamFileWriter.close();
             Files.delete(Path.of(tempStreamFileWriter.getFullPath()));

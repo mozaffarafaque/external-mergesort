@@ -17,6 +17,7 @@ public class ExecutionSummary {
     private List<String> outputFiles;
     private Duration splitTimeTakenIntoStagedFile;
     private Duration timeTakenInMergingAndWriting;
+    private int temporaryFileCount;
 
     private ExecutionSummary() {
 
@@ -65,6 +66,10 @@ public class ExecutionSummary {
             return this;
         }
 
+        public ExecutionSummaryBuilder setTemporaryFileCount(int temporaryFileCount) {
+            executionSummary.temporaryFileCount = temporaryFileCount;
+            return this;
+        }
 
         public ExecutionSummaryBuilder setTimeTakenInMergingAndWriting(Duration timeTakenInMergingAndWriting) {
             executionSummary.timeTakenInMergingAndWriting = timeTakenInMergingAndWriting;
@@ -108,6 +113,10 @@ public class ExecutionSummary {
         return timeTakenInMergingAndWriting;
     }
 
+    public int getTemporaryFileCount() {
+        return temporaryFileCount;
+    }
+
     @Override
     public String toString() {
         return "ExecutionSummary{" +
@@ -118,6 +127,7 @@ public class ExecutionSummary {
                 ",\n splitTimeTakenIntoStagedFile=" + splitTimeTakenIntoStagedFile +
                 ",\n timeTakenInMergingAndWriting=" + timeTakenInMergingAndWriting +
                 ",\n noOfRecordsSorted=" + noOfRecordsSorted +
+                ",\n temporaryFileCount=" + temporaryFileCount +
                 ",\n outputFiles=" + outputFiles +
                 '}';
     }

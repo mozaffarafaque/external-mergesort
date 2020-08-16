@@ -1,20 +1,40 @@
 package com.mozafaq.extmergesort;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Mozaffar Afaque
  */
 public class TestSortAware implements SortAware<Integer> {
+
+    private AtomicInteger onBeginCallCount = new AtomicInteger();
+    private AtomicInteger onCompleteCallCount = new AtomicInteger();
+
     @Override
     public RecordWriter<Integer> recordWriter() {
-        return (outputStream, record) -> {
-            char[] bytes = record.toString().toCharArray();
+        return new RecordWriter<Integer>() {
+            @Override
+            public void writeRecord(OutputStream outputStream, Integer record) throws IOException {
+                char[] bytes = record.toString().toCharArray();
 
-            for (char ch: bytes) {
-                outputStream.write((byte)ch);
+                for (char ch: bytes) {
+                    outputStream.write((byte)ch);
+                }
+                outputStream.write((int)'\n');
             }
-            outputStream.write((int)'\n');
+
+            @Override
+            public void onBegin() {
+                onBeginCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void onComplete() {
+                onCompleteCallCount.incrementAndGet();
+            }
         };
     }
 
@@ -36,5 +56,18 @@ public class TestSortAware implements SortAware<Integer> {
     @Override
     public Comparator<Integer> recordComparator() {
         return ((o1, o2) -> o1 -o2);
+    }
+
+    @Override
+    public ResultRecordStream<Integer> resultRecordStream() {
+        return null;
+    }
+
+    public AtomicInteger getOnBeginCallCount() {
+        return onBeginCallCount;
+    }
+
+    public AtomicInteger getOnCompleteCallCount() {
+        return onCompleteCallCount;
     }
 }

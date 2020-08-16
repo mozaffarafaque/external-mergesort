@@ -1,5 +1,7 @@
 package com.mozafaq.extmergesort;
 
+import java.util.Objects;
+
 /**
  * @author Mozaffar Afaque
  */
@@ -37,6 +39,15 @@ public class Configuration {
         }
 
         public Configuration build() {
+
+            Objects.requireNonNull(configuration.baseConfig, "Base config must be non-null");
+            Objects.requireNonNull(configuration.destination, "Destination must be non-null");
+            Objects.requireNonNull(configuration.source, "Source must be non-null");
+
+            if (configuration.getDestination().getIoType() == IOType.RECORD_STREAM) {
+                Objects.requireNonNull(configuration.baseConfig.getSortAware().resultRecordStream(),
+                        "Result record stream must be non-null for destination being RECORD_STREAM.");
+            }
             Configuration configurationTemp = configuration;
             configuration = new Configuration();
             return configurationTemp;

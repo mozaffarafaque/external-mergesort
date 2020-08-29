@@ -1,6 +1,5 @@
 package com.mozafaq.extmergesort;
 
-import com.amazonaws.auth.AWSCredentials;
 
 import java.util.Objects;
 import java.util.UUID;

@@ -7,8 +7,6 @@ import java.util.Objects;
  */
 public class IOLocation {
     private IOLocationType ioLocationType;
-    private String s3Path;
-    private String s3Region;
     private String fileSystemPath;
     private String objectName;
 
@@ -29,11 +27,6 @@ public class IOLocation {
             return this;
         }
 
-        public IOLocationBuilder setS3Path(String s3Path) {
-            ioLocation.s3Path = s3Path;
-            return this;
-        }
-
         public IOLocationBuilder setFileSystemPath(String fileSystemPath) {
             ioLocation.fileSystemPath = fileSystemPath;
             return this;
@@ -41,11 +34,6 @@ public class IOLocation {
 
         public IOLocationBuilder setObjectName(String objectName) {
             ioLocation.objectName = objectName;
-            return this;
-        }
-
-        public IOLocationBuilder setS3Region(String s3Region) {
-            ioLocation.s3Region = s3Region;
             return this;
         }
 
@@ -64,10 +52,6 @@ public class IOLocation {
         return ioLocationType;
     }
 
-    public String getS3Path() {
-        return s3Path;
-    }
-
     public String getFileSystemPath() {
         return fileSystemPath;
     }
@@ -76,17 +60,10 @@ public class IOLocation {
         return objectName;
     }
 
-    public String getS3Region() {
-        return s3Region;
-    }
-
-
     @Override
     public String toString() {
         return "IOLocation{" +
                 "ioLocationType=" + ioLocationType +
-                ", s3Path='" + s3Path + '\'' +
-                ", s3Region='" + s3Region + '\'' +
                 ", fileSystemPath='" + fileSystemPath + '\'' +
                 ", objectName='" + objectName + '\'' +
                 '}';

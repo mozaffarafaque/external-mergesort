@@ -20,13 +20,9 @@ public class PropertiesParser {
             new Pair<>("sort.temporary.files.directory", InputProperty.TEMPORARY_FILES_DIRECTORY),
             new Pair<>("sort.max.record.in.output.batch", InputProperty.MAX_RECORD_IN_OUTPUT_BATCH),
             new Pair<>("sort.source.io.type", InputProperty.SOURCE_IO_TYPE),
-            new Pair<>("sort.source.s3.path", InputProperty.SOURCE_S3_PATH),
-            new Pair<>("sort.source.s3.region", InputProperty.SOURCE_S3_REGION),
             new Pair<>("sort.source.filesystem.path", InputProperty.SOURCE_FILESYSTEM_PATH),
             new Pair<>("sort.source.object.name", InputProperty.SOURCE_OBJECT_NAME),
             new Pair<>("sort.destination.io.type", InputProperty.DESTINATION_IO_TYPE),
-            new Pair<>("sort.destination.s3.path", InputProperty.DESTINATION_S3_PATH),
-            new Pair<>("sort.destination.s3.region", InputProperty.DESTINATION_S3_REGION),
             new Pair<>("sort.destination.filesystem.path", InputProperty.DESTINATION_FILESYSTEM_PATH),
             new Pair<>("sort.destination.object.name", InputProperty.DESTINATION_OBJECT_NAME),
             new Pair<>("sort.client.logic.provider", InputProperty.CLIENT_LOGIC_PROVIDER)
@@ -75,26 +71,14 @@ public class PropertiesParser {
              case SOURCE_IO_TYPE:
                  ioLocationBuilderSource.setIoType(IOLocationType.valueOf(propertyValue));
                  break;
-             case SOURCE_S3_PATH:
-                 ioLocationBuilderSource.setS3Path(propertyValue);
-                 break;
              case SOURCE_FILESYSTEM_PATH:
                  ioLocationBuilderSource.setFileSystemPath(propertyValue);
-                 break;
-             case SOURCE_S3_REGION:
-                 ioLocationBuilderSource.setS3Region(propertyValue);
                  break;
              case SOURCE_OBJECT_NAME:
                  ioLocationBuilderSource.setObjectName(propertyValue);
                  break;
              case DESTINATION_IO_TYPE:
                  ioLocationBuilderDest.setIoType(IOLocationType.valueOf(propertyValue));
-                 break;
-             case DESTINATION_S3_PATH:
-                 ioLocationBuilderDest.setS3Path(propertyValue);
-                 break;
-             case DESTINATION_S3_REGION:
-                 ioLocationBuilderDest.setS3Region(propertyValue);
                  break;
              case DESTINATION_FILESYSTEM_PATH:
                  ioLocationBuilderDest.setFileSystemPath(propertyValue);

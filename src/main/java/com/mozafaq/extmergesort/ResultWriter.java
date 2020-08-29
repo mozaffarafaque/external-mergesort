@@ -45,8 +45,6 @@ public class ResultWriter<T> {
                 .setFileSystemPath(destinationLocation.getFileSystemPath())
                 .setIoType(destinationLocation.getIoLocationType())
                 .setObjectName(getObjectName())
-                .setS3Path(destinationLocation.getS3Path())
-                .setS3Region(destinationLocation.getS3Region())
                 .build();
 
         if (ioLocation.getObjectName() != null) {
@@ -61,7 +59,6 @@ public class ResultWriter<T> {
             case RECORD_STREAM:
                 return null;
             case FILE_SYSTEM:
-            case AWS_S3_BUCKET:
                 if (isSingleFile) {
                     return configuration.getDestination().getObjectName() + "-sorted";
                 }

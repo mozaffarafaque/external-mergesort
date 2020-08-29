@@ -13,7 +13,6 @@ This can be done in limited memory.
 
 **a source location** and **specified destination location** can be one of 
 the followings (a different source and destination is possible).
- - File object stored in AWS S3 bucket
  - A file system
  - Stream of records.
  
